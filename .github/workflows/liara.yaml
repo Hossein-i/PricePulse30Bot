@@ -17,4 +17,4 @@ jobs:
           LIARA_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
         run: |
           npm i -g @liara/cli@7
-          liara deploy --app="pricepulse30bot" --api-token="$LIARA_TOKEN" --no-app-logs
+          liara deploy --app="pricepulse30bot" --api-token="$LIARA_TOKEN" --port=3000 --no-app-logs
