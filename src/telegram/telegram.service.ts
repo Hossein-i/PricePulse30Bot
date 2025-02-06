@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { Telegraf } from 'telegraf';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -12,7 +13,30 @@ export class BotService implements OnModuleInit {
   constructor() {}
 
   onModuleInit() {
-    this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+    // تنظیمات MTProto Proxy
+    const proxyOptions = {
+      host: process.env.TELEGRAM_PROXY_HOST, // آدرس پروکسی (مثلاً 1.2.3.4)
+      port: process.env.TELEGRAM_PROXY_PORT, // پورت پروکسی (معمولاً 443)
+      auth: {
+        username: process.env.TELEGRAM_PROXY_USER, // اگر نیاز به احراز هویت داره
+        password: process.env.TELEGRAM_PROXY_PASS, // اگر نیاز به احراز هویت داره
+      },
+      protocol: process.env.TELEGRAM_PROXY_PROTOCOL, // نوع پروتکل
+      secret: process.env.TELEGRAM_PROXY_SECRET, // کلید مخفی (secret) پروکسی
+    };
+
+    // ایجاد اتصال با پروکسی
+    const agent = new SocksProxyAgent(
+      `socks5://${proxyOptions.host}:${proxyOptions.port}`,
+    );
+
+    // تنظیم ربات با پروکسی
+    this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN, {
+      telegram: {
+        agent, // استفاده از پروکسی
+        ...proxyOptions, // اضافه کردن تنظیمات پروکسی
+      },
+    });
 
     // دستور /start
     this.bot.command('start', (ctx) => {
