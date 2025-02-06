@@ -20,7 +20,6 @@ export class BotService implements OnModuleInit {
     this.bot.start((ctx) => {
       this.subscribedChatIds.add(ctx.chat.id);
       ctx.reply('شما با موفقیت عضو شدید! قیمت تتر هر 30 دقیقه ارسال خواهد شد.');
-      this.sendPriceUpdate();
     });
 
     // دستور /stop
