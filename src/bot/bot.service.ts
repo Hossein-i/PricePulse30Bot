@@ -20,12 +20,13 @@ export class BotService implements OnModuleInit {
     this.bot.start((ctx) => {
       this.subscribedChatIds.add(ctx.chat.id);
       ctx.reply('شما با موفقیت عضو شدید! قیمت تتر هر 30 دقیقه ارسال خواهد شد.');
+      this.sendPriceUpdate();
     });
 
     // دستور /stop
     this.bot.command('stop', (ctx) => {
       this.subscribedChatIds.delete(ctx.chat.id);
-      ctx.reply('شما با موفقیت لغو عضو شدید!');
+      ctx.reply('لغو عضویت شما با موفقیت انجام شد!');
     });
 
     this.bot.launch();
@@ -47,7 +48,7 @@ export class BotService implements OnModuleInit {
 
     try {
       const price = await this.getTetherPrice();
-      const message = `قیمت فعلی تتر (USDT): ${price} تومان`;
+      const message = `قیمت فعلی تتر (USDT): ${price} ریال`;
 
       for (const chatId of this.subscribedChatIds) {
         await this.bot.telegram.sendMessage(chatId, message);
@@ -57,7 +58,7 @@ export class BotService implements OnModuleInit {
       for (const chatId of this.subscribedChatIds) {
         await this.bot.telegram.sendMessage(
           chatId,
-          'ببخشید، در این لحظه نمیتونم قیمت‌ها رو دریافت کنم.',
+          'ببخشید، در این لحظه نمی‌توانم قیمت‌ها را ارسال کنم!',
         );
       }
     }
