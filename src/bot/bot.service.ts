@@ -10,9 +10,7 @@ export class BotService implements OnModuleInit {
   private subscribedChatIds: Set<number> = new Set();
 
   constructor() {}
-
-  async onModuleInit() {
-    // تنظیم ربات با پروکسی
+  onModuleInit() {
     this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
     // دستور /start
