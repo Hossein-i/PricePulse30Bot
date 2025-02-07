@@ -159,7 +159,7 @@ export class BotService implements OnModuleInit {
 
     if (
       (!chatUsername || !CHANNEL_USERNAMES.includes(chatUsername)) &&
-      !CHANNEL_USERNAMES.includes(text)
+      text !== '/start'
     ) {
       return;
     }
