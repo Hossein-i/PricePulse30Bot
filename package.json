@@ -1,10 +1,34 @@
 {
   "name": "pricepulse30bot",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
-  "private": true,
-  "license": "UNLICENSED",
+  "version": "1.0.0",
+  "description": "Price Pulse Bot is a smart Telegram bot that helps you get real-time cryptocurrency and fiat prices every 30 minutes. The bot uses the Nobitex API to receive prices and sends them based on users' preferences.",
+  "keywords": [
+    "nestjs",
+    "telegram",
+    "telegraf",
+    "bot"
+  ],
+  "homepage": "https://github.com/Hossein-i/PricePulse30Bot#readme",
+  "bugs": {
+    "url": "https://github.com/Hossein-i/PricePulse30Bot/issues",
+    "email": "sayhi@hossein-i.ir"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Hossein-i",
+    "email": "sayhi@hossein-i.ir",
+    "url": "https://hossein-i.ir"
+  },
+  "funding": [
+    {
+      "type": "Zarinpal",
+      "url": "https://zarinp.al/668251"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hossein-i/PricePulse30Bot.git"
+  },
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
