@@ -59,7 +59,7 @@ export class BotService implements OnModuleInit {
       }
 
       const welcomeMessage =
-        '🌐 Welcome to Price Pulse! 🌐 \n\n🤖 Price Pulse is your smart assistant for real-time currency price monitoring! 💹 \n\n✨ Every half hour, I will inform you of the latest prices of your selected currencies. Just select the currencies you want and leave the rest to me! 🕒 \n\n✅ How to get started? \n1. Send the command /subscribe. \n2. In the menu that appears, enable or disable the currencies you want by clicking on the buttons below. \n\nFrom now on, I will send you the prices of your selected currencies every half hour! 📊';
+        '🌐 Welcome to Price Pulse! 🌐 \n\n🤖 Price Pulse is your smart assistant for real-time currency price monitoring! 💹 \n\n✨ Every half hour, I will inform you of the latest prices of your selected currencies. Just select the currencies you want and leave the rest to me! 🕒 \n\n✅ How to get started? \n1. Send the command /subscribe. \n2. In the menu that appears, enable or disable the currencies you want by clicking on the buttons below. \n3. After selecting, click the "Confirm" button. \n\nFrom now on, I will send you the prices of your selected currencies every half hour! 📊';
 
       ctx.reply(welcomeMessage);
     });
@@ -191,9 +191,11 @@ export class BotService implements OnModuleInit {
           try {
             const { from, to } = this.currencies.get(currency);
             const fromFormat = new Intl.NumberFormat(from.locale, {
+              style: 'currency',
               currency: from.currency,
             });
             const toFormat = new Intl.NumberFormat(to.locale, {
+              style: 'currency',
               currency: to.currency,
             });
 
@@ -207,7 +209,7 @@ export class BotService implements OnModuleInit {
       );
 
       messages.unshift(`Price Pulse!\n ${this.getFormattedUTCDate()}`);
-      const message = messages.join('---------------- \n');
+      const message = messages.join('\n---------------- \n');
       await this.bot.telegram.sendMessage(userId, message);
     }
   }
@@ -235,19 +237,19 @@ export class BotService implements OnModuleInit {
 
   /**
    * Returns the current date and time in UTC formatted as a string.
-   * The format of the returned string is `YY/MM/DD \nHH:mm \nUTC`.
+   * The format of the returned string is `YY/MM/DD - HH:mm - UTC`.
    *
    * @returns {string} The formatted UTC date and time string.
    */
   private getFormattedUTCDate(): string {
     const now = new Date();
 
-    const year = now.getUTCFullYear().toString().slice(-2);
+    const year = now.getUTCFullYear().toString();
     const month = String(now.getUTCMonth() + 1).padStart(2, '0');
     const day = String(now.getUTCDate()).padStart(2, '0');
     const hours = String(now.getUTCHours()).padStart(2, '0');
     const minutes = String(now.getUTCMinutes()).padStart(2, '0');
 
-    return `${year}/${month}/${day} \n${hours}:${minutes} \nUTC`;
+    return `${year}/${month}/${day} - ${hours}:${minutes} - UTC`;
   }
 }
