@@ -2,7 +2,6 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
 import { SchedulerService } from 'src/scheduler/scheduler.service';
 import { Context, Markup, Telegraf } from 'telegraf';
-import { message } from 'telegraf/filters';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
 /**
@@ -94,7 +93,7 @@ export class BotService implements OnModuleInit {
 
     this.bot.use(this.initializeChatIfAbsent);
 
-    this.bot.on(message('channel_chat_created'), this.handleNewChannel);
+    this.bot.on('channel_post', this.handleChannelPost);
 
     this.bot.start(this.handleStartCommand);
     this.bot.command('subscribe', this.handleSubscribeCommand);
@@ -139,20 +138,29 @@ export class BotService implements OnModuleInit {
   };
 
   /**
-   * Handles the event when a new channel is added.
+   * Handles incoming channel posts and sends a welcome message along with a currency selection keyboard.
    *
-   * This method checks if the chat is a channel and if its username is included in the predefined list of channel usernames.
-   * If the chat is a valid channel, it sends a welcome message and prompts the user to select their preferred currencies.
+   * @param {Context} ctx The context object containing information about the incoming channel post.
    *
-   * @param {Context} ctx The context object containing information about the chat.
+   * The function performs the following steps:
+   * 1. Extracts the chat ID, chat username, and text from the incoming channel post.
+   * 2. Checks if the chat username or text is included in the predefined list of channel usernames.
+   * 3. If the conditions are met, sends a welcome message and a currency selection keyboard to the user.
+   *
+   * The welcome message provides information about the Price Pulse bot and instructions on how to get started.
+   * The currency selection keyboard allows users to enable or disable their preferred currencies.
    */
-  private readonly handleNewChannel = (ctx: Context) => {
-    const chat = ctx.chat;
-    const chatId = chat.id;
-    const chatUsername = chat.type === 'channel' ? chat.username : undefined;
-    console.table({ chatId, chatUsername });
+  private readonly handleChannelPost = (ctx: Context) => {
+    const chatId = ctx.channelPost.chat.id;
+    const chatUsername = ctx.channelPost.chat.username;
+    const text = 'text' in ctx.channelPost ? ctx.channelPost.text : '';
 
-    if (!chatUsername || !CHANNEL_USERNAMES.includes(chatUsername)) {
+    console.table({ chatId, chatUsername, text });
+
+    if (
+      (!chatUsername || !CHANNEL_USERNAMES.includes(chatUsername)) &&
+      !CHANNEL_USERNAMES.includes(text)
+    ) {
       return;
     }
 
