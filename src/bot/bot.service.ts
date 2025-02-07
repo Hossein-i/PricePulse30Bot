@@ -89,7 +89,7 @@ export class BotService implements OnModuleInit {
   /**
    * Initializes the Telegram bot and sets up command handlers and scheduled jobs.
    */
-  onModuleInit() {
+  onModuleInit = () => {
     this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
     this.bot.use(this.initializeChatIfAbsent);
@@ -112,7 +112,7 @@ export class BotService implements OnModuleInit {
         this.sendPriceUpdate();
       },
     );
-  }
+  };
 
   /**
    * Middleware to initialize chat data if it is absent.
@@ -146,12 +146,12 @@ export class BotService implements OnModuleInit {
    * @param {Context} ctx The context object provided by the bot framework, which includes information
    *              about the message and the user.
    */
-  private handleStartCommand(ctx: Context) {
+  private readonly handleStartCommand = (ctx: Context) => {
     const welcomeMessage =
       '🌐 Welcome to Price Pulse! 🌐 \n\n🤖 Price Pulse is your smart assistant for real-time currency price monitoring! 💹 \n\n✨ Every half hour, I will inform you of the latest prices of your selected currencies. Just select the currencies you want and leave the rest to me! 🕒 \n\n✅ How to get started? \n1. Send the command /subscribe. \n2. In the menu that appears, enable or disable the currencies you want by clicking on the buttons below. \n3. After selecting, click the "Confirm" button. \n\nFrom now on, I will send you the prices of your selected currencies every half hour! 📊';
 
     ctx.reply(welcomeMessage);
-  }
+  };
 
   /**
    * Handles the /subscribe command from the user.
@@ -159,14 +159,14 @@ export class BotService implements OnModuleInit {
    *
    * @param {Context} ctx The context of the message, which includes information about the chat and user.
    */
-  private handleSubscribeCommand(ctx: Context) {
+  private readonly handleSubscribeCommand = (ctx: Context) => {
     const chatId = ctx.chat.id;
 
     ctx.reply(
       'Please select your preferred currencies:',
       this.createCurrencyKeyboard(chatId),
     );
-  }
+  };
 
   /**
    * Handles the unsubscribe command from the user.
@@ -178,12 +178,12 @@ export class BotService implements OnModuleInit {
    *
    * @param {Context} ctx The context object containing information about the chat and message.
    */
-  private handleUnsubscribeCommand(ctx: Context) {
+  private readonly handleUnsubscribeCommand = (ctx: Context) => {
     const chatId = ctx.chat.id;
     const user = this.chats.get(chatId);
     this.chats.set(chatId, { ...user, subscribedCurrencies: new Set() });
     ctx.reply('Your subscriptions has been successfully canceled!');
-  }
+  };
 
   /**
    * Handles the action of toggling a currency subscription for a chat.
@@ -201,7 +201,7 @@ export class BotService implements OnModuleInit {
    * - Finally, it updates the message text to reflect the current state of the
    *   user's currency subscriptions.
    */
-  private handleToggleCurrencyAction(ctx: Context) {
+  private readonly handleToggleCurrencyAction = (ctx: Context) => {
     const chatId = ctx.chat.id;
     const currency = (ctx as any).match[1];
     const { subscribedCurrencies, ...rest } = this.chats.get(chatId);
@@ -222,7 +222,7 @@ export class BotService implements OnModuleInit {
       'Please select your preferred currencies:',
       this.createCurrencyKeyboard(chatId),
     );
-  }
+  };
 
   /**
    * Handles the confirmation of selected currencies by the user.
@@ -234,7 +234,7 @@ export class BotService implements OnModuleInit {
    *
    * @param {Context} ctx The context object containing information about the chat and the user's interaction.
    */
-  private handleConfirmCurrencyAction(ctx: Context) {
+  private readonly handleConfirmCurrencyAction = (ctx: Context) => {
     const chatId = ctx.chat.id;
     const { subscribedCurrencies } = this.chats.get(chatId);
 
@@ -246,7 +246,7 @@ export class BotService implements OnModuleInit {
         `✅ Your selected currencies: \n${Array.from(subscribedCurrencies).join(', ')} \n\nFrom now on, I will send you the prices of these currencies every half hour.`,
       );
     }
-  }
+  };
 
   /**
    * Creates an inline keyboard markup for selecting currencies.
@@ -258,9 +258,9 @@ export class BotService implements OnModuleInit {
    *
    * @returns {Markup.Markup<InlineKeyboardMarkup>} A Markup object containing the inline keyboard with currency buttons.
    */
-  private createCurrencyKeyboard(
+  private readonly createCurrencyKeyboard = (
     chatId: number,
-  ): Markup.Markup<InlineKeyboardMarkup> {
+  ): Markup.Markup<InlineKeyboardMarkup> => {
     const buttons = Array.from(this.currencies.keys()).map((currency) => {
       const { subscribedCurrencies } = this.chats.get(chatId);
       const isActive = subscribedCurrencies.has(currency);
@@ -274,7 +274,7 @@ export class BotService implements OnModuleInit {
     buttons.push(Markup.button.callback('Confirm', 'confirm_currency'));
 
     return Markup.inlineKeyboard(buttons, { columns: 2 });
-  }
+  };
 
   /**
    * Sends a price update to all subscribed users.
@@ -292,7 +292,7 @@ export class BotService implements OnModuleInit {
    *
    * @throws {Error} If there is an error fetching the price for a currency, it logs the error and includes an error message in the user's update.
    */
-  private async sendPriceUpdate(): Promise<void> {
+  private readonly sendPriceUpdate = async (): Promise<void> => {
     if (this.chats.size === 0) {
       this.logger.warn('No users subscribed. Waiting for /start command.');
       return;
@@ -340,7 +340,7 @@ export class BotService implements OnModuleInit {
       );
       await this.bot.telegram.sendMessage(chatId, message);
     }
-  }
+  };
 
   /**
    * Fetches the price of the specified currency from the Nobitex API.
@@ -351,7 +351,9 @@ export class BotService implements OnModuleInit {
    *
    * @throws {Error} Throws an error if the price fetching fails.
    */
-  private async getCurrencyPrice(currency: string): Promise<number> {
+  private readonly getCurrencyPrice = async (
+    currency: string,
+  ): Promise<number> => {
     try {
       const response = await axios.get(
         `https://api.nobitex.ir/v2/orderbook/${currency}`,
@@ -361,7 +363,7 @@ export class BotService implements OnModuleInit {
     } catch (error) {
       throw new Error('Failed to fetch Tether price');
     }
-  }
+  };
 
   /**
    * Returns the current date and time in UTC formatted as a string.
@@ -369,7 +371,7 @@ export class BotService implements OnModuleInit {
    *
    * @returns {string} The formatted UTC date and time string.
    */
-  private getFormattedUTCDate(): string {
+  private readonly getFormattedUTCDate = (): string => {
     const now = new Date();
 
     const year = now.getUTCFullYear().toString();
@@ -379,7 +381,7 @@ export class BotService implements OnModuleInit {
     const minutes = String(now.getUTCMinutes()).padStart(2, '0');
 
     return `${year}/${month}/${day} - ${hours}:${minutes} - UTC`;
-  }
+  };
 
   /**
    * Creates a currency formatter based on the provided locale and currency.
@@ -390,12 +392,15 @@ export class BotService implements OnModuleInit {
    *
    * @returns An `Intl.NumberFormat` instance configured for the specified locale and currency.
    */
-  private createCurrencyFormatter(props: { locale: string; currency: string }) {
+  private readonly createCurrencyFormatter = (props: {
+    locale: string;
+    currency: string;
+  }) => {
     const { locale, currency } = props;
 
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
     });
-  }
+  };
 }
