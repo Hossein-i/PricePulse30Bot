@@ -144,6 +144,10 @@ export class BotService implements OnModuleInit {
       ctx.reply('Your subscriptions has been successfully canceled!');
     });
 
+    this.bot.catch((err) =>
+      this.logger.error('[Bot]: Something went wrong! ', err),
+    );
+
     this.bot.launch();
 
     this.schedulerService.scheduleJob(
