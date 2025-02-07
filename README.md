@@ -22,8 +22,8 @@
 1. **Clone the repository:**
 
 ```bash
-git clone https://github.com/your-username/price-pulse-bot.git
-cd price-pulse-bot
+git clone https://github.com/Hossein-i/PricePulse30Bot.git
+cd PricePulse30Bot
 ```
 
 2. **Install dependencies:**
@@ -70,20 +70,6 @@ If you no longer want to receive prices, send the `/unsubscribe` command.
 
 The bot will send you updated prices every 30 minutes.
 
-## Donate 💖
-
-If you like this project and want to support its development and maintenance, you can donate through one of the following methods:
-
-### Donate methods
-
-- [**Zarinpal**](https://zarinp.al/668251)
-
-- **The Open Network (TON):**
-
-```text
-UQC6DUtxFcqhTYvUSFmnmLpb-MI6-41RY4ECeZgY7hvkLGJI
-```
-
 ### Why support this project?
 
 - **Continuous development:** Your support helps us to continue developing and improving this project.
@@ -120,3 +106,17 @@ git push origin feature/your-feature-name
 ## License 📜
 
 This project is released under the [MIT](LICENSE) license.
+
+## Donate 💖
+
+If you like this project and want to support its development and maintenance, you can donate through one of the following methods:
+
+### Donate methods
+
+- [**Zarinpal**](https://zarinp.al/668251)
+
+- **The Open Network (TON):**
+
+```text
+UQC6DUtxFcqhTYvUSFmnmLpb-MI6-41RY4ECeZgY7hvkLGJI
+```
