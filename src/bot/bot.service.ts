@@ -1,11 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
 import { SchedulerService } from 'src/scheduler/scheduler.service';
-import { Context, Markup, Middleware, Telegraf } from 'telegraf';
-import {
-  InlineKeyboardMarkup,
-  Update,
-} from 'telegraf/typings/core/types/typegram';
+import { Context, Markup, Telegraf } from 'telegraf';
+import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
 /**
  * Constant representing a 30-minute interval in milliseconds.
@@ -93,69 +90,15 @@ export class BotService implements OnModuleInit {
     this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
     this.bot.use(this.initializeChatIfAbsent);
-    this.bot.start((ctx) => {
-      const welcomeMessage =
-        '🌐 Welcome to Price Pulse! 🌐 \n\n🤖 Price Pulse is your smart assistant for real-time currency price monitoring! 💹 \n\n✨ Every half hour, I will inform you of the latest prices of your selected currencies. Just select the currencies you want and leave the rest to me! 🕒 \n\n✅ How to get started? \n1. Send the command /subscribe. \n2. In the menu that appears, enable or disable the currencies you want by clicking on the buttons below. \n3. After selecting, click the "Confirm" button. \n\nFrom now on, I will send you the prices of your selected currencies every half hour! 📊';
 
-      ctx.reply(welcomeMessage);
-    });
+    this.bot.start(this.handleStartCommand);
+    this.bot.command('subscribe', this.handleSubscribeCommand);
+    this.bot.command('unsubscribe', this.handleUnsubscribeCommand);
 
-    this.bot.command('subscribe', (ctx) => {
-      const chatId = ctx.chat.id;
+    this.bot.action(/toggle_currency_(.+)/, this.handleToggleCurrencyAction);
+    this.bot.action('confirm_currency', this.handleConfirmCurrencyAction);
 
-      ctx.reply(
-        'Please select your preferred currencies:',
-        this.createCurrencyKeyboard(chatId),
-      );
-    });
-
-    this.bot.action(/toggle_currency_(.+)/, (ctx) => {
-      const chatId = ctx.chat.id;
-      const currency = ctx.match[1];
-      const { subscribedCurrencies, ...rest } = this.chats.get(chatId);
-      const updatedSubscribedCurrencies = new Set(subscribedCurrencies);
-
-      if (subscribedCurrencies.has(currency)) {
-        updatedSubscribedCurrencies.delete(currency);
-      } else {
-        updatedSubscribedCurrencies.add(currency);
-      }
-
-      this.chats.set(chatId, {
-        ...rest,
-        subscribedCurrencies: updatedSubscribedCurrencies,
-      });
-
-      ctx.editMessageText(
-        'Please select your preferred currencies:',
-        this.createCurrencyKeyboard(chatId),
-      );
-    });
-
-    this.bot.action('confirm_currency', (ctx) => {
-      const chatId = ctx.chat.id;
-      const { subscribedCurrencies } = this.chats.get(chatId);
-
-      if (subscribedCurrencies.size === 0) {
-        ctx.answerCbQuery('⚠️ Please select at least one currency.');
-      } else {
-        ctx.deleteMessage();
-        ctx.reply(
-          `✅ Your selected currencies: \n${Array.from(subscribedCurrencies).join(', ')} \n\nFrom now on, I will send you the prices of these currencies every half hour.`,
-        );
-      }
-    });
-
-    this.bot.command('unsubscribe', (ctx) => {
-      const chatId = ctx.chat.id;
-      const user = this.chats.get(chatId);
-      this.chats.set(chatId, { ...user, subscribedCurrencies: new Set() });
-      ctx.reply('Your subscriptions has been successfully canceled!');
-    });
-
-    this.bot.catch((err) =>
-      this.logger.error('[Bot]: Something went wrong! ', err),
-    );
+    this.bot.catch((err) => this.logger.error('Something went wrong! ', err));
 
     this.bot.launch();
 
@@ -174,10 +117,10 @@ export class BotService implements OnModuleInit {
    * This middleware checks if the chat ID exists in the `chats` map. If it does not,
    * it initializes the chat data with an empty set of subscribed currencies.
    *
-   * @param ctx The context object containing the chat information.
-   * @param next The next middleware function in the stack.
+   * @param {Context} ctx The context object containing the chat information.
+   * @param {() => Promise<void>} next The next middleware function in the stack.
    */
-  private initializeChatIfAbsent: Middleware<Context<Update>> = (ctx, next) => {
+  private initializeChatIfAbsent(ctx: Context, next: () => Promise<void>) {
     const chatId = ctx.chat.id;
 
     if (!this.chats.has(chatId)) {
@@ -185,7 +128,119 @@ export class BotService implements OnModuleInit {
     }
 
     next();
-  };
+  }
+
+  /**
+   * Handles the /start command for the bot.
+   *
+   * This method sends a welcome message to the user, introducing them to the Price Pulse bot.
+   * The message includes instructions on how to subscribe to currency price updates and how to
+   * select the currencies they are interested in.
+   *
+   * @param {Context} ctx The context object provided by the bot framework, which includes information
+   *              about the message and the user.
+   */
+  private handleStartCommand(ctx: Context) {
+    const welcomeMessage =
+      '🌐 Welcome to Price Pulse! 🌐 \n\n🤖 Price Pulse is your smart assistant for real-time currency price monitoring! 💹 \n\n✨ Every half hour, I will inform you of the latest prices of your selected currencies. Just select the currencies you want and leave the rest to me! 🕒 \n\n✅ How to get started? \n1. Send the command /subscribe. \n2. In the menu that appears, enable or disable the currencies you want by clicking on the buttons below. \n3. After selecting, click the "Confirm" button. \n\nFrom now on, I will send you the prices of your selected currencies every half hour! 📊';
+
+    ctx.reply(welcomeMessage);
+  }
+
+  /**
+   * Handles the /subscribe command from the user.
+   * Sends a message prompting the user to select their preferred currencies.
+   *
+   * @param {Context} ctx The context of the message, which includes information about the chat and user.
+   */
+  private handleSubscribeCommand(ctx: Context) {
+    const chatId = ctx.chat.id;
+
+    ctx.reply(
+      'Please select your preferred currencies:',
+      this.createCurrencyKeyboard(chatId),
+    );
+  }
+
+  /**
+   * Handles the unsubscribe command from the user.
+   *
+   * This method is triggered when a user sends an unsubscribe command.
+   * It retrieves the user's chat ID from the context, updates the user's
+   * subscription status by clearing the set of subscribed currencies,
+   * and sends a confirmation message to the user.
+   *
+   * @param {Context} ctx The context object containing information about the chat and message.
+   */
+  private handleUnsubscribeCommand(ctx: Context) {
+    const chatId = ctx.chat.id;
+    const user = this.chats.get(chatId);
+    this.chats.set(chatId, { ...user, subscribedCurrencies: new Set() });
+    ctx.reply('Your subscriptions has been successfully canceled!');
+  }
+
+  /**
+   * Handles the action of toggling a currency subscription for a chat.
+   *
+   * This method is triggered when a user interacts with the currency selection
+   * interface. It updates the user's subscribed currencies by either adding or
+   * removing the selected currency from their subscription list.
+   *
+   * @param {Context} ctx The context object provided by the Telegraf framework, which
+   *              includes information about the chat and the action performed.
+   *
+   * @remarks
+   * - The method retrieves the chat ID and the selected currency from the context.
+   * - It then updates the list of subscribed currencies for the chat.
+   * - Finally, it updates the message text to reflect the current state of the
+   *   user's currency subscriptions.
+   */
+  private handleToggleCurrencyAction(ctx: Context) {
+    const chatId = ctx.chat.id;
+    const currency = (ctx as any).match[1];
+    const { subscribedCurrencies, ...rest } = this.chats.get(chatId);
+    const updatedSubscribedCurrencies = new Set(subscribedCurrencies);
+
+    if (subscribedCurrencies.has(currency)) {
+      updatedSubscribedCurrencies.delete(currency);
+    } else {
+      updatedSubscribedCurrencies.add(currency);
+    }
+
+    this.chats.set(chatId, {
+      ...rest,
+      subscribedCurrencies: updatedSubscribedCurrencies,
+    });
+
+    ctx.editMessageText(
+      'Please select your preferred currencies:',
+      this.createCurrencyKeyboard(chatId),
+    );
+  }
+
+  /**
+   * Handles the confirmation of selected currencies by the user.
+   *
+   * This method checks if the user has selected at least one currency. If no currencies are selected,
+   * it sends a warning message to the user. If there are selected currencies, it deletes the current
+   * message and replies with a confirmation message listing the selected currencies. Additionally,
+   * it informs the user that they will receive price updates for these currencies every half hour.
+   *
+   * @param {Context} ctx The context object containing information about the chat and the user's interaction.
+   */
+  private handleConfirmCurrencyAction(ctx: Context) {
+    const chatId = ctx.chat.id;
+    const { subscribedCurrencies } = this.chats.get(chatId);
+
+    if (subscribedCurrencies.size === 0) {
+      ctx.answerCbQuery('⚠️ Please select at least one currency.');
+    } else {
+      ctx.deleteMessage();
+      ctx.reply(
+        `✅ Your selected currencies: \n${Array.from(subscribedCurrencies).join(', ')} \n\nFrom now on, I will send you the prices of these currencies every half hour.`,
+      );
+    }
+  }
 
   /**
    * Creates an inline keyboard markup for selecting currencies.
