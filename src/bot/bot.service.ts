@@ -227,9 +227,8 @@ export class BotService implements OnModuleInit {
     }
 
     const messages: [string, string][] = await Promise.all(
-      Array.from(this.currencies.keys()).map(async (currency) => {
+      Array.from(this.currencies).map(async ([currency, { from, to }]) => {
         try {
-          const { from, to } = this.currencies.get(currency);
           const fromFormat = new Intl.NumberFormat(from.locale, {
             style: 'currency',
             currency: from.currency,
