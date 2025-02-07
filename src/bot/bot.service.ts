@@ -12,7 +12,7 @@ import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
  */
 const EVERY_30_MINUTES = 30 * 60 * 1000;
 
-const CHANNEL_USERNAMES = ['PricePulse30'];
+const CHANNEL_USERNAMES = ['pricepulse30'];
 
 /**
  * The `BotService` class is responsible for managing the Telegram bot interactions,
@@ -150,6 +150,7 @@ export class BotService implements OnModuleInit {
     const chat = ctx.chat;
     const chatId = chat.id;
     const chatUsername = chat.type === 'channel' ? chat.username : undefined;
+    console.table({ chatId, chatUsername });
 
     if (!chatUsername || !CHANNEL_USERNAMES.includes(chatUsername)) {
       return;
