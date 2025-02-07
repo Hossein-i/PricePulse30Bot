@@ -1,8 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
 import { SchedulerService } from 'src/scheduler/scheduler.service';
-import { Markup, Telegraf } from 'telegraf';
-import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
+import { Context, Markup, Middleware, Telegraf } from 'telegraf';
+import {
+  InlineKeyboardMarkup,
+  Update,
+} from 'telegraf/typings/core/types/typegram';
 
 const EVERY_30_MINUTES = 30 * 60 * 1000;
 
@@ -78,13 +81,8 @@ export class BotService implements OnModuleInit {
   onModuleInit() {
     this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
+    this.bot.use(this.initializeChatIfAbsent);
     this.bot.start((ctx) => {
-      const chatId = ctx.chat.id;
-
-      if (!this.chats.has(chatId)) {
-        this.chats.set(chatId, { subscribedCurrencies: new Set() });
-      }
-
       const welcomeMessage =
         '🌐 Welcome to Price Pulse! 🌐 \n\n🤖 Price Pulse is your smart assistant for real-time currency price monitoring! 💹 \n\n✨ Every half hour, I will inform you of the latest prices of your selected currencies. Just select the currencies you want and leave the rest to me! 🕒 \n\n✅ How to get started? \n1. Send the command /subscribe. \n2. In the menu that appears, enable or disable the currencies you want by clicking on the buttons below. \n3. After selecting, click the "Confirm" button. \n\nFrom now on, I will send you the prices of your selected currencies every half hour! 📊';
 
@@ -158,6 +156,25 @@ export class BotService implements OnModuleInit {
       },
     );
   }
+
+  /**
+   * Middleware to initialize chat data if it is absent.
+   *
+   * This middleware checks if the chat ID exists in the `chats` map. If it does not,
+   * it initializes the chat data with an empty set of subscribed currencies.
+   *
+   * @param ctx The context object containing the chat information.
+   * @param next The next middleware function in the stack.
+   */
+  private initializeChatIfAbsent: Middleware<Context<Update>> = (ctx, next) => {
+    const chatId = ctx.chat.id;
+
+    if (!this.chats.has(chatId)) {
+      this.chats.set(chatId, { subscribedCurrencies: new Set() });
+    }
+
+    next();
+  };
 
   /**
    * Creates an inline keyboard markup for selecting currencies.
