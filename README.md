@@ -70,14 +70,6 @@ If you no longer want to receive prices, send the `/unsubscribe` command.
 
 The bot will send you updated prices every 30 minutes.
 
-### Why support this project?
-
-- **Continuous development:** Your support helps us to continue developing and improving this project.
-- **Feature enhancements:** With your support, we can add new and more exciting features to the bot.
-- **Better Support:** Financial support allows us to provide better support to our users.
-
-Any donation, no matter how small, is very valuable to us and motivates us to continue working. 🙏
-
 ## Contribute to the project 🤝
 
 If you want to contribute to the development of this project, follow these steps:
@@ -120,3 +112,11 @@ If you like this project and want to support its development and maintenance, yo
 ```text
 UQC6DUtxFcqhTYvUSFmnmLpb-MI6-41RY4ECeZgY7hvkLGJI
 ```
+
+### Why support this project?
+
+- **Continuous development:** Your support helps us to continue developing and improving this project.
+- **Feature enhancements:** With your support, we can add new and more exciting features to the bot.
+- **Better Support:** Financial support allows us to provide better support to our users.
+
+Any donation, no matter how small, is very valuable to us and motivates us to continue working. 🙏
