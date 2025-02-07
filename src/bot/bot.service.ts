@@ -7,10 +7,21 @@ import {
   Update,
 } from 'telegraf/typings/core/types/typegram';
 
+/**
+ * Constant representing a 30-minute interval in milliseconds.
+ *
+ * Value is calculated as 30 minutes * 60 seconds per minute * 1000 milliseconds per second.
+ */
 const EVERY_30_MINUTES = 30 * 60 * 1000;
 
 /**
- * Service responsible for handling Telegram bot interactions and scheduling price updates.
+ * The `BotService` class is responsible for managing the Telegram bot interactions,
+ * handling user commands, and scheduling periodic tasks for currency price updates.
+ * It implements the `OnModuleInit` interface to initialize the bot and its functionalities
+ * when the module is initialized.
+ *
+ * @class
+ * @implements {OnModuleInit}
  */
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -226,22 +237,19 @@ export class BotService implements OnModuleInit {
       return;
     }
 
+    const header = `Price Pulse!\n${this.getFormattedUTCDate()}`;
+
     const messages: [string, string][] = await Promise.all(
       Array.from(this.currencies).map(async ([currency, { from, to }]) => {
         try {
-          const fromFormat = new Intl.NumberFormat(from.locale, {
-            style: 'currency',
-            currency: from.currency,
-          });
-          const toFormat = new Intl.NumberFormat(to.locale, {
-            style: 'currency',
-            currency: to.currency,
-          });
+          const currencyFormatterFrom = this.createCurrencyFormatter(from);
+          const currencyFormatterTo = this.createCurrencyFormatter(to);
 
           const price = await this.getCurrencyPrice(currency);
+
           return [
             currency,
-            `${currency} \n${fromFormat.format(1)} = ${toFormat.format(price)}`,
+            `${currency} \n${currencyFormatterFrom.format(1)} = ${currencyFormatterTo.format(price)}`,
           ];
         } catch (error) {
           this.logger.error(`Error fetching price for ${currency}:`, error);
@@ -253,7 +261,6 @@ export class BotService implements OnModuleInit {
       }),
     );
 
-    const header = `Price Pulse!\n${this.getFormattedUTCDate()}`;
     const messageMap = new Map(messages);
 
     for (const [chatId, { subscribedCurrencies }] of this.chats) {
@@ -311,5 +318,23 @@ export class BotService implements OnModuleInit {
     const minutes = String(now.getUTCMinutes()).padStart(2, '0');
 
     return `${year}/${month}/${day} - ${hours}:${minutes} - UTC`;
+  }
+
+  /**
+   * Creates a currency formatter based on the provided locale and currency.
+   *
+   * @param props An object containing the locale and currency.
+   * @param props.locale The locale to use for formatting.
+   * @param props.currency The currency to use for formatting.
+   *
+   * @returns An `Intl.NumberFormat` instance configured for the specified locale and currency.
+   */
+  private createCurrencyFormatter(props: { locale: string; currency: string }) {
+    const { locale, currency } = props;
+
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+    });
   }
 }
