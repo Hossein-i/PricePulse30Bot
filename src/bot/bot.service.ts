@@ -205,22 +205,20 @@ export class BotService implements OnModuleInit {
   }
 
   /**
-   * Sends price updates to all subscribed users.
+   * Sends a price update to all subscribed users.
    *
-   * This method checks if there are any users subscribed to receive price updates.
-   * If there are no users, it logs a warning message and exits.
+   * This method retrieves the latest currency prices and formats them according to the user's locale and currency preferences.
+   * It then sends a message to each subscribed user with the updated prices.
    *
-   * For each subscribed user, it fetches the latest currency prices for the currencies
-   * they are subscribed to and formats the prices according to the respective locales.
-   * It then sends a message to the user with the formatted price information.
-   *
-   * If an error occurs while fetching the price for a currency, an error message is logged
-   * and a fallback message is sent to the user.
-   *
-   * The message sent to the user includes a header with the current UTC date and time,
-   * followed by the formatted price information for each subscribed currency.
+   * The method performs the following steps:
+   * 1. Checks if there are any subscribed users. If not, logs a warning and exits.
+   * 2. Retrieves and formats the latest prices for each currency.
+   * 3. Constructs a message for each subscribed user with their respective currencies.
+   * 4. Sends the constructed message to each user via the bot.
    *
    * @returns {Promise<void>} A promise that resolves when the price updates have been sent.
+   *
+   * @throws {Error} If there is an error fetching the price for a currency, it logs the error and includes an error message in the user's update.
    */
   private async sendPriceUpdate(): Promise<void> {
     if (this.chats.size === 0) {
@@ -228,35 +226,51 @@ export class BotService implements OnModuleInit {
       return;
     }
 
+    const messages: [string, string][] = await Promise.all(
+      Array.from(this.currencies.keys()).map(async (currency) => {
+        try {
+          const { from, to } = this.currencies.get(currency);
+          const fromFormat = new Intl.NumberFormat(from.locale, {
+            style: 'currency',
+            currency: from.currency,
+          });
+          const toFormat = new Intl.NumberFormat(to.locale, {
+            style: 'currency',
+            currency: to.currency,
+          });
+
+          const price = await this.getCurrencyPrice(currency);
+          return [
+            currency,
+            `${currency} \n${fromFormat.format(1)} = ${toFormat.format(price)}`,
+          ];
+        } catch (error) {
+          this.logger.error(`Error fetching price for ${currency}:`, error);
+          return [
+            currency,
+            `Error retrieving price for ${currency}. Please try again later.`,
+          ];
+        }
+      }),
+    );
+
+    const header = `Price Pulse!\n${this.getFormattedUTCDate()}`;
+    const messageMap = new Map(messages);
+
     for (const [chatId, { subscribedCurrencies }] of this.chats) {
       if (!subscribedCurrencies || subscribedCurrencies.size === 0) {
         continue;
       }
 
-      const messages = await Promise.all(
-        Array.from(subscribedCurrencies).map(async (currency) => {
-          try {
-            const { from, to } = this.currencies.get(currency);
-            const fromFormat = new Intl.NumberFormat(from.locale, {
-              style: 'currency',
-              currency: from.currency,
-            });
-            const toFormat = new Intl.NumberFormat(to.locale, {
-              style: 'currency',
-              currency: to.currency,
-            });
+      const currencyMessages = Array.from(subscribedCurrencies)
+        .map((currency) => messageMap.get(currency))
+        .filter(Boolean);
 
-            const price = await this.getCurrencyPrice(currency);
-            return `${currency} \n${fromFormat.format(1)} = ${toFormat.format(price)}`;
-          } catch (error) {
-            this.logger.error(`Error fetching price for ${currency}:`, error);
-            return `Error retrieving price for ${currency}. Please try again later.`;
-          }
-        }),
+      currencyMessages.unshift(header);
+
+      const message = currencyMessages.join(
+        '\n-------------------------------- \n',
       );
-
-      messages.unshift(`Price Pulse!\n ${this.getFormattedUTCDate()} `);
-      const message = messages.join('\n---------------- \n');
       await this.bot.telegram.sendMessage(chatId, message);
     }
   }
