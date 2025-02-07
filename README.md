@@ -76,7 +76,7 @@ If you like this project and want to support its development and maintenance, yo
 
 ### Donate methods
 
-- [**Zarinpal**](https://github.com/sponsors/Hossein-i)
+- [**Zarinpal**](https://zarinp.al/668251)
 
 - **The Open Network (TON):**
 
