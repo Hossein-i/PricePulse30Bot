@@ -6,6 +6,10 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
  */
 @Injectable()
 export class SchedulerService implements OnModuleInit {
+  /**
+   * A record that maps job identifiers to their corresponding NodeJS.Timeout objects.
+   * This is used to keep track of scheduled jobs and their timeouts.
+   */
   private jobs: Record<string, NodeJS.Timeout> = {};
 
   /**
@@ -16,9 +20,9 @@ export class SchedulerService implements OnModuleInit {
   /**
    * Schedules a recurring job.
    *
-   * @param name - The name of the job.
-   * @param interval - The interval in milliseconds at which the job should run.
-   * @param task - The task to be executed.
+   * @param name The name of the job.
+   * @param interval The interval in milliseconds at which the job should run.
+   * @param task The task to be executed.
    */
   scheduleJob(name: string, interval: number, task: () => void) {
     if (this.jobs[name]) {
@@ -30,7 +34,7 @@ export class SchedulerService implements OnModuleInit {
   /**
    * Cancels a scheduled job.
    *
-   * @param name - The name of the job to cancel.
+   * @param name The name of the job to cancel.
    */
   cancelJob(name: string) {
     if (this.jobs[name]) {
@@ -42,9 +46,9 @@ export class SchedulerService implements OnModuleInit {
   /**
    * Schedules a one-time job.
    *
-   * @param name - The name of the job.
-   * @param delay - The delay in milliseconds after which the job should run.
-   * @param task - The task to be executed.
+   * @param name The name of the job.
+   * @param delay The delay in milliseconds after which the job should run.
+   * @param task The task to be executed.
    */
   scheduleOnce(name: string, delay: number, task: () => void) {
     if (this.jobs[name]) {
