@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
 import { SchedulerService } from 'src/scheduler/scheduler.service';
 import { Context, Markup, Telegraf } from 'telegraf';
+import { message } from 'telegraf/filters';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
 /**
@@ -10,6 +11,8 @@ import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
  * Value is calculated as 30 minutes * 60 seconds per minute * 1000 milliseconds per second.
  */
 const EVERY_30_MINUTES = 30 * 60 * 1000;
+
+const CHANNEL_USERNAMES = ['PricePulse30'];
 
 /**
  * The `BotService` class is responsible for managing the Telegram bot interactions,
@@ -91,6 +94,8 @@ export class BotService implements OnModuleInit {
 
     this.bot.use(this.initializeChatIfAbsent);
 
+    this.bot.on(message('channel_chat_created'), this.handleNewChannel);
+
     this.bot.start(this.handleStartCommand);
     this.bot.command('subscribe', this.handleSubscribeCommand);
     this.bot.command('unsubscribe', this.handleUnsubscribeCommand);
@@ -131,6 +136,33 @@ export class BotService implements OnModuleInit {
     }
 
     next();
+  };
+
+  /**
+   * Handles the event when a new channel is added.
+   *
+   * This method checks if the chat is a channel and if its username is included in the predefined list of channel usernames.
+   * If the chat is a valid channel, it sends a welcome message and prompts the user to select their preferred currencies.
+   *
+   * @param {Context} ctx The context object containing information about the chat.
+   */
+  private readonly handleNewChannel = (ctx: Context) => {
+    const chat = ctx.chat;
+    const chatId = chat.id;
+    const chatUsername = chat.type === 'channel' ? chat.username : undefined;
+
+    if (!chatUsername || !CHANNEL_USERNAMES.includes(chatUsername)) {
+      return;
+    }
+
+    const welcomeMessage =
+      '🌐 Welcome to Price Pulse! 🌐 \n\n🤖 Price Pulse is your smart assistant for real-time currency price monitoring! 💹 \n\n✨ Every half hour, I will inform you of the latest prices of your selected currencies. Just select the currencies you want and leave the rest to me! 🕒 \n\n✅ How to get started? \n1. In the menu that appears, enable or disable the currencies you want by clicking on the buttons below. \n2. After selecting, click the "Confirm" button. \n\nFrom now on, I will send you the prices of your selected currencies every half hour! 📊';
+
+    ctx.reply(welcomeMessage);
+    ctx.reply(
+      'Please select your preferred currencies:',
+      this.createCurrencyKeyboard(chatId),
+    );
   };
 
   /**
