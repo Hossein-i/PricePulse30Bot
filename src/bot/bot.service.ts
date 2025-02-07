@@ -11,8 +11,29 @@ const EVERY_30_MINUTES = 30 * 60 * 1000;
  */
 @Injectable()
 export class BotService implements OnModuleInit {
+  /**
+   * An instance of the Telegraf bot used to interact with the Telegram API.
+   * This bot handles the messaging and command functionalities for the application.
+   */
   private bot: Telegraf;
+
+  /**
+   * A logger instance for the BotService class.
+   * Used to log messages and errors for debugging and monitoring purposes.
+   */
   private readonly logger = new Logger(BotService.name);
+
+  /**
+   * A map of currency pairs with their respective locale and currency information.
+   *
+   * The map keys are strings representing the currency pair (e.g., 'USDTIRT').
+   * The map values are objects containing 'from' and 'to' properties, each of which
+   * includes a 'locale' and 'currency' string.
+   *
+   * Example currency pairs:
+   * - 'USDTIRT': Converts from USD to IRR with respective locales 'en-US' and 'fa-IR'.
+   * - 'BTCIRT': Converts from BTC to IRR with respective locales 'en-US' and 'fa-IR'.
+   */
   private readonly currencies: Map<
     string,
     {
@@ -35,13 +56,19 @@ export class BotService implements OnModuleInit {
       },
     ],
   ]);
-  private readonly users: Map<number, { subscribedCurrencies: Set<string> }> =
+
+  /**
+   * A map that stores chat information.
+   * The key is the chat ID (number).
+   * The value is an object containing a set of subscribed currencies (Set<string>).
+   */
+  private readonly chats: Map<number, { subscribedCurrencies: Set<string> }> =
     new Map();
 
   /**
    * Initializes the BotService with the provided SchedulerService.
    *
-   * @param schedulerService - The service responsible for scheduling jobs.
+   * @param schedulerService The service responsible for scheduling jobs.
    */
   constructor(private readonly schedulerService: SchedulerService) {}
 
@@ -52,10 +79,10 @@ export class BotService implements OnModuleInit {
     this.bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
     this.bot.start((ctx) => {
-      const userId = ctx.from.id;
+      const chatId = ctx.chat.id;
 
-      if (!this.users.has(userId)) {
-        this.users.set(userId, { subscribedCurrencies: new Set() });
+      if (!this.chats.has(chatId)) {
+        this.chats.set(chatId, { subscribedCurrencies: new Set() });
       }
 
       const welcomeMessage =
@@ -65,18 +92,18 @@ export class BotService implements OnModuleInit {
     });
 
     this.bot.command('subscribe', (ctx) => {
-      const userId = ctx.from.id;
+      const chatId = ctx.chat.id;
 
       ctx.reply(
         'Please select your preferred currencies:',
-        this.createCurrencyKeyboard(userId),
+        this.createCurrencyKeyboard(chatId),
       );
     });
 
     this.bot.action(/toggle_currency_(.+)/, (ctx) => {
-      const userId = ctx.from.id;
+      const chatId = ctx.chat.id;
       const currency = ctx.match[1];
-      const { subscribedCurrencies, ...rest } = this.users.get(userId);
+      const { subscribedCurrencies, ...rest } = this.chats.get(chatId);
       const updatedSubscribedCurrencies = new Set(subscribedCurrencies);
 
       if (subscribedCurrencies.has(currency)) {
@@ -85,20 +112,20 @@ export class BotService implements OnModuleInit {
         updatedSubscribedCurrencies.add(currency);
       }
 
-      this.users.set(userId, {
+      this.chats.set(chatId, {
         ...rest,
         subscribedCurrencies: updatedSubscribedCurrencies,
       });
 
       ctx.editMessageText(
         'Please select your preferred currencies:',
-        this.createCurrencyKeyboard(userId),
+        this.createCurrencyKeyboard(chatId),
       );
     });
 
     this.bot.action('confirm_currency', (ctx) => {
-      const userId = ctx.from.id;
-      const { subscribedCurrencies } = this.users.get(userId);
+      const chatId = ctx.chat.id;
+      const { subscribedCurrencies } = this.chats.get(chatId);
 
       if (subscribedCurrencies.size === 0) {
         ctx.answerCbQuery('⚠️ Please select at least one currency.');
@@ -111,9 +138,9 @@ export class BotService implements OnModuleInit {
     });
 
     this.bot.command('unsubscribe', (ctx) => {
-      const userId = ctx.from.id;
-      const user = this.users.get(userId);
-      this.users.set(userId, { ...user, subscribedCurrencies: new Set() });
+      const chatId = ctx.chat.id;
+      const user = this.chats.get(chatId);
+      this.chats.set(chatId, { ...user, subscribedCurrencies: new Set() });
       ctx.reply('Your subscriptions has been successfully canceled!');
     });
 
@@ -129,21 +156,20 @@ export class BotService implements OnModuleInit {
   }
 
   /**
-   * Creates an inline keyboard for selecting currencies.
-   *
-   * This method generates a set of buttons representing available currencies.
-   * Each button indicates whether the user is subscribed to that currency.
+   * Creates an inline keyboard markup for selecting currencies.
+   * Each button represents a currency that the user can subscribe to or unsubscribe from.
+   * The button text indicates whether the currency is currently subscribed (⭕) or not (❌).
    * Additionally, a "Confirm" button is added at the end of the keyboard.
    *
-   * @param {number} userId The ID of the user for whom the keyboard is being created.
+   * @param {number} chatId The ID of the chat for which the keyboard is being created.
    *
-   * @returns {Markup.Markup<InlineKeyboardMarkup>} An inline keyboard with currency selection buttons.
+   * @returns {Markup.Markup<InlineKeyboardMarkup>} A Markup object containing the inline keyboard with currency buttons.
    */
   private createCurrencyKeyboard(
-    userId: number,
+    chatId: number,
   ): Markup.Markup<InlineKeyboardMarkup> {
     const buttons = Array.from(this.currencies.keys()).map((currency) => {
-      const { subscribedCurrencies } = this.users.get(userId);
+      const { subscribedCurrencies } = this.chats.get(chatId);
       const isActive = subscribedCurrencies.has(currency);
 
       return Markup.button.callback(
@@ -176,12 +202,12 @@ export class BotService implements OnModuleInit {
    * @returns {Promise<void>} A promise that resolves when the price updates have been sent.
    */
   private async sendPriceUpdate(): Promise<void> {
-    if (this.users.size === 0) {
+    if (this.chats.size === 0) {
       this.logger.warn('No users subscribed. Waiting for /start command.');
       return;
     }
 
-    for (const [userId, { subscribedCurrencies }] of this.users) {
+    for (const [chatId, { subscribedCurrencies }] of this.chats) {
       if (!subscribedCurrencies || subscribedCurrencies.size === 0) {
         continue;
       }
@@ -208,9 +234,9 @@ export class BotService implements OnModuleInit {
         }),
       );
 
-      messages.unshift(`Price Pulse!\n ${this.getFormattedUTCDate()}`);
+      messages.unshift(`Price Pulse!\n ${this.getFormattedUTCDate()} `);
       const message = messages.join('\n---------------- \n');
-      await this.bot.telegram.sendMessage(userId, message);
+      await this.bot.telegram.sendMessage(chatId, message);
     }
   }
 
