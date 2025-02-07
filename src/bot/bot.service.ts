@@ -1,8 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
 import { SchedulerService } from 'src/scheduler/scheduler.service';
-import { Context, Markup, Telegraf } from 'telegraf';
-import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
+import { Context, Markup, Middleware, Telegraf } from 'telegraf';
+import {
+  InlineKeyboardMarkup,
+  Update,
+} from 'telegraf/typings/core/types/typegram';
 
 /**
  * Constant representing a 30-minute interval in milliseconds.
@@ -117,10 +120,13 @@ export class BotService implements OnModuleInit {
    * This middleware checks if the chat ID exists in the `chats` map. If it does not,
    * it initializes the chat data with an empty set of subscribed currencies.
    *
-   * @param {Context} ctx The context object containing the chat information.
-   * @param {() => Promise<void>} next The next middleware function in the stack.
+   * @param ctx The context object containing the chat information.
+   * @param next The next middleware function in the stack.
    */
-  private initializeChatIfAbsent(ctx: Context, next: () => Promise<void>) {
+  private readonly initializeChatIfAbsent: Middleware<Context<Update>> = (
+    ctx,
+    next,
+  ) => {
     const chatId = ctx.chat.id;
 
     if (!this.chats.has(chatId)) {
@@ -128,7 +134,7 @@ export class BotService implements OnModuleInit {
     }
 
     next();
-  }
+  };
 
   /**
    * Handles the /start command for the bot.
