@@ -35,7 +35,7 @@ export class BotService implements OnModuleInit {
       },
     ],
   ]);
-  private readonly users: Map<number, { subscribedCurrencies?: Set<string> }> =
+  private readonly users: Map<number, { subscribedCurrencies: Set<string> }> =
     new Map();
 
   /**
@@ -55,7 +55,7 @@ export class BotService implements OnModuleInit {
       const userId = ctx.from.id;
 
       if (!this.users.has(userId)) {
-        this.users.set(userId, {});
+        this.users.set(userId, { subscribedCurrencies: new Set() });
       }
 
       const welcomeMessage =
