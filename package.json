@@ -1,6 +1,6 @@
 {
   "name": "pricepulse30bot",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Price Pulse Bot is a smart Telegram bot that helps you get real-time cryptocurrency and fiat prices every 30 minutes. The bot uses the Nobitex API to receive prices and sends them based on users' preferences.",
   "keywords": [
     "nestjs",
