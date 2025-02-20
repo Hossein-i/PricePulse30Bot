@@ -11,7 +11,7 @@ import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
  */
 const EVERY_30_MINUTES = 30 * 60 * 1000;
 
-const CHANNEL_USERNAMES = ['PricePulse30'];
+const USERNAMES = ['PricePulse30', 'PricePulse30Channel'];
 
 /**
  * The `BotService` class is responsible for managing the Telegram bot interactions,
@@ -129,12 +129,21 @@ export class BotService implements OnModuleInit {
     next: () => Promise<void>,
   ) => {
     const chatId = ctx.chat.id;
+    const hasPrivate = ctx.chat.type === 'private';
+    const username =
+      ctx.chat.type === 'channel' || ctx.chat.type == 'supergroup'
+        ? ctx.chat.username
+        : undefined;
 
-    if (!this.chats.has(chatId)) {
-      this.chats.set(chatId, { subscribedCurrencies: new Set() });
+    if (hasPrivate || USERNAMES.includes(username)) {
+      if (!this.chats.has(chatId)) {
+        this.chats.set(chatId, { subscribedCurrencies: new Set() });
+      }
+
+      next();
+    } else {
+      ctx.reply('You do not have permission.');
     }
-
-    next();
   };
 
   /**
@@ -144,7 +153,7 @@ export class BotService implements OnModuleInit {
    *
    * The function performs the following steps:
    * 1. Extracts the chat ID, chat username, and text from the incoming channel post.
-   * 2. Checks if the chat username or text is included in the predefined list of channel usernames.
+   * 2. Checks if text equals /start.
    * 3. If the conditions are met, sends a welcome message and a currency selection keyboard to the user.
    *
    * The welcome message provides information about the Price Pulse bot and instructions on how to get started.
@@ -152,24 +161,18 @@ export class BotService implements OnModuleInit {
    */
   private readonly handleChannelPost = (ctx: Context) => {
     const chatId = ctx.channelPost.chat.id;
-    const chatUsername = ctx.channelPost.chat.username;
     const text = 'text' in ctx.channelPost ? ctx.channelPost.text : '';
 
-    if (
-      (!chatUsername || !CHANNEL_USERNAMES.includes(chatUsername)) &&
-      text !== '/start'
-    ) {
-      return;
+    if (text === '/start') {
+      const welcomeMessage =
+        '🌐 Welcome to Price Pulse! 🌐 \n\n🤖 Price Pulse is your smart assistant for real-time currency price monitoring! 💹 \n\n✨ Every half hour, I will inform you of the latest prices of your selected currencies. Just select the currencies you want and leave the rest to me! 🕒 \n\n✅ How to get started? \n1. In the menu that appears, enable or disable the currencies you want by clicking on the buttons below. \n2. After selecting, click the "Confirm" button. \n\nFrom now on, I will send you the prices of your selected currencies every half hour! 📊';
+
+      ctx.reply(welcomeMessage);
+      ctx.reply(
+        'Please select your preferred currencies:',
+        this.createCurrencyKeyboard(chatId),
+      );
     }
-
-    const welcomeMessage =
-      '🌐 Welcome to Price Pulse! 🌐 \n\n🤖 Price Pulse is your smart assistant for real-time currency price monitoring! 💹 \n\n✨ Every half hour, I will inform you of the latest prices of your selected currencies. Just select the currencies you want and leave the rest to me! 🕒 \n\n✅ How to get started? \n1. In the menu that appears, enable or disable the currencies you want by clicking on the buttons below. \n2. After selecting, click the "Confirm" button. \n\nFrom now on, I will send you the prices of your selected currencies every half hour! 📊';
-
-    ctx.reply(welcomeMessage);
-    ctx.reply(
-      'Please select your preferred currencies:',
-      this.createCurrencyKeyboard(chatId),
-    );
   };
 
   /**
