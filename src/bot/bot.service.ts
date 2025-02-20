@@ -141,8 +141,6 @@ export class BotService implements OnModuleInit {
       }
 
       next();
-    } else {
-      ctx.reply('You do not have permission.');
     }
   };
 
